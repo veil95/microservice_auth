@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Response, Depends
 from controllers.user_auth import AuthController
 from controllers.check_rate_limit import Ratelimit
 from controllers.jwt_handler import create_access_token, create_refresh_token, verify_access_token
-from model.user import UserLogin, UserRequestRegistation
+from model.user import UserLogin, UserRequestRegistration
 from model.user import user_instance as user
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from model.token import TokenTransport, TokenJWT, TokenTypeJWT
@@ -19,17 +19,17 @@ async def login(user_data: UserLogin, response: Response) -> TokenJWT:
 
     ratelimit.increment_login_attempt(user_data.username)
 
-    if not (user.user_exists(user_data.username) or not
-    (auth_controller.verify_password(user_data.password, user.get_hashed_password(user_data.username)))):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect login or password"
-        )
-
     if not ratelimit.check_rate_limit(user_data.username):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many login attempts. Please try again later"
+        )
+
+    if (not user.user_exists(user_data.username) or not
+    (auth_controller.verify_password(user_data.password, user.get_hashed_password(user_data.username)))):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect login or password"
         )
 
     access_token = create_access_token(user_data.username)
@@ -50,10 +50,10 @@ async def login(user_data: UserLogin, response: Response) -> TokenJWT:
 
 
 @router.post("/register")
-async def register(user_data: UserRequestRegistation):
+async def register(user_data: UserRequestRegistration):
     if user.user_exists(user_data.username):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
             detail="username is already registered"
         )
 
@@ -61,7 +61,7 @@ async def register(user_data: UserRequestRegistation):
 
     user.create_user(user_data.username, hashed_password, user_data.displayname)
 
-    return {f"message": "пользователь создан"}
+    return {"message": "пользователь создан"}
 
 
 @router.get("/me")
@@ -71,8 +71,10 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     payload = verify_access_token(token)
 
     user_data = user.get_user(payload["sub"])
-    print(user_data)
-    print(payload)
+
+    if not user_data:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "user does not exist")
+
     return {
         "username": payload["sub"],
         "displayname": user_data.get("displayname")

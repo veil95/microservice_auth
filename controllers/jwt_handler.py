@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from os import getenv
 from dotenv import load_dotenv
@@ -13,7 +13,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = int(getenv("REFRESH_TOKEN_EXPIRE_DAYS"))
 
 
 def create_refresh_token(username: str) -> str:
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     data = {"sub": username,
             "exp": expire,
             "type": "refresh_token"}
@@ -21,7 +21,7 @@ def create_refresh_token(username: str) -> str:
 
 
 def create_access_token(username: str) -> str:
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     data = {"sub": username,
             "exp": expire,
             "type": "access_token"}
@@ -54,7 +54,7 @@ def verify_access_token(token: str) -> dict:
 
 def verify_refresh_token(token: str) -> dict:
     payload = decode_token(token)
-    if payload.get("type") != TokenTypeJWT.REFRESH_TOKEN:
+    if payload.get("type") != TokenTypeJWT.REFRESH_TOKEN.value:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token type")

@@ -1,8 +1,9 @@
 import re
-from fastapi import HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
+from pydantic_core import PydanticCustomError
 
+USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]+$")
 
 class User:
     def __init__(self):
@@ -20,10 +21,10 @@ class User:
         return self.users_db.get(username)
 
     def get_hashed_password(self, username: str) -> Optional[str]:
-        password = self.users_db[username]["hashed_password"]
-        if password:
-            return password
-        return None
+        user_record  = self.get_user(username)
+        if user_record is None:
+            return None
+        return user_record.get("hashed_password")
 
 
 class UserLogin(BaseModel):
@@ -31,27 +32,18 @@ class UserLogin(BaseModel):
     password: str
 
 
-class UserRequestRegistation(BaseModel):
+class UserRequestRegistration(BaseModel):
     username: str = Field(..., min_length=3, max_length=25, description="username должен быть от 3 до 25 символов")
     displayname: str = Field(..., min_length=1, max_length=30, description="Отображаемое имя должно быть от 1 до 30 символов")
     password_plaintext: str = Field(..., min_length=5, description="минимальная длина паролы должна быть 5 символов")
-
-    @field_validator('username', mode='before')
-    def valide_username(cls, value):
-        if not re.match("^[a-zA-Z0-9_]+$", value):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="The username can only contain letters and numbers")
-        if len(value) < 3 or len(value) > 25:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Username must be at least 3 characters and not exceed 25")
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, value: str) -> str:
+        if not USERNAME_PATTERN.fullmatch(value):
+            raise PydanticCustomError(
+                "username_invalid_chars",
+                "Username может содержать только латинские буквы, цифры и _",
+            )
         return value
-
-    @field_validator('password_plaintext', mode='before')
-    def check_password(cls, value):
-        if len(value) < 5:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="your password is too easy, password must be at least 5 characters long")
-        return value
-
 
 user_instance = User()
