@@ -35,7 +35,7 @@ def decode_token(token: str):
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
     except jwt.JWTError:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="invalid token")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token")
 
 
 def verify_access_token(token: str) -> dict:
@@ -47,7 +47,7 @@ def verify_access_token(token: str) -> dict:
     username = payload.get("sub")
     if not username:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload")
     return payload
 
@@ -62,6 +62,6 @@ def verify_refresh_token(token: str) -> dict:
 
     if not username:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload")
     return payload

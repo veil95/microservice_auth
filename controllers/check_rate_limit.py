@@ -2,7 +2,7 @@ from time import time
 from datetime import timedelta
 
 RATE_LIMIT_LOGIN_COOLDOWN_S = timedelta(minutes=1).total_seconds()
-
+RATE_LIMIT_LOGIN_ATTEMPTS = 5
 
 class Ratelimit:
     def __init__(self):
@@ -21,7 +21,7 @@ class Ratelimit:
             user_attempts["last_attempt_time"] = current_time
             return True
 
-        if user_attempts["attempts"] <= 5:
+        if user_attempts["attempts"] < RATE_LIMIT_LOGIN_ATTEMPTS:
             return True
         return False
 

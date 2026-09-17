@@ -16,9 +16,6 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 
 @router.post("/login")
 async def login(user_data: UserLogin, response: Response) -> TokenJWT:
-
-    ratelimit.increment_login_attempt(user_data.username)
-
     if not ratelimit.check_rate_limit(user_data.username):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -27,6 +24,7 @@ async def login(user_data: UserLogin, response: Response) -> TokenJWT:
 
     if (not user.user_exists(user_data.username) or not
     (auth_controller.verify_password(user_data.password, user.get_hashed_password(user_data.username)))):
+        ratelimit.increment_login_attempt(user_data.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect login or password"
@@ -49,7 +47,7 @@ async def login(user_data: UserLogin, response: Response) -> TokenJWT:
     return TokenJWT(token=access_token, type=TokenTypeJWT.ACCESS_TOKEN, transport=TokenTransport.BEARER)
 
 
-@router.post("/register")
+@router.post("/register",status_code=201)
 async def register(user_data: UserRequestRegistration):
     if user.user_exists(user_data.username):
         raise HTTPException(
