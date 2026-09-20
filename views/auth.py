@@ -71,7 +71,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     user_data = user.get_user(payload["sub"])
 
     if not user_data:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "user is not exist")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user does not exist")
 
     return {
         "username": payload["sub"],
