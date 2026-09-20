@@ -33,12 +33,12 @@ def client():
 
 @pytest.fixture
 def create_user(client):
-    def _create(username="bob", password="secret123", displayname="Bob"):
+    def _create(username="bob", password="secret123", display_name="Bob"):
         response = client.post(
             "/auth/register",
             json={
                 "username": username,
-                "displayname": displayname,
+                "display_name": display_name,
                 "password_plaintext": password,
             },
         )

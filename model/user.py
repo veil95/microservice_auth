@@ -11,7 +11,7 @@ class User:
 
     def create_user(self, username: str, hashed_password: str, display_name: str) -> dict:
         self.users_db[username] = {"hashed_password": hashed_password,
-                                   "displayname": display_name}
+                                   "display_name": display_name}
         return self.users_db[username]
 
     def user_exists(self, username: str) -> bool:
@@ -34,7 +34,7 @@ class UserLogin(BaseModel):
 
 class UserRequestRegistration(BaseModel):
     username: str = Field(..., min_length=3, max_length=25, description="username должен быть от 3 до 25 символов")
-    displayname: str = Field(..., min_length=1, max_length=30, description="Отображаемое имя должно быть от 1 до 30 символов")
+    display_name: str = Field(..., min_length=1, max_length=30, description="Отображаемое имя должно быть от 1 до 30 символов")
     password_plaintext: str = Field(..., min_length=5, description="минимальная длина паролы должна быть 5 символов")
     @field_validator("username")
     @classmethod

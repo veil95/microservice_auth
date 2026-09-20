@@ -12,12 +12,12 @@ def login_token(client, user):
 
 
 def test_me_returns_current_user(client, create_user):
-    token = login_token(client, create_user(displayname="Bobby"))
+    token = login_token(client, create_user(display_name="Bobby"))
 
     response = get_me(client, token)
 
     assert response.status_code == 200
-    assert response.json() == {"username": "bob", "displayname": "Bobby"}
+    assert response.json() == {"username": "bob", "display_name": "Bobby"}
 
 
 def test_me_does_not_expose_password_hash(client, create_user):

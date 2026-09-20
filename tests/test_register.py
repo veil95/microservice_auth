@@ -2,7 +2,7 @@ import pytest
 
 from model.user import user_instance
 
-VALID_USER = {"username": "bob", "displayname": "Bob", "password_plaintext": "secret123"}
+VALID_USER = {"username": "bob", "display_name": "Bob", "password_plaintext": "secret123"}
 
 
 def register(client, **overrides):
@@ -25,16 +25,16 @@ def test_register_stores_argon2_hash_not_plaintext(client):
     assert stored.startswith("$argon2id$")
 
 
-def test_register_stores_displayname(client):
-    register(client, displayname="Bobby")
+def test_register_stores_display_name(client):
+    register(client, display_name="Bobby")
 
-    assert user_instance.get_user("bob")["displayname"] == "Bobby"
+    assert user_instance.get_user("bob")["display_name"] == "Bobby"
 
 
 def test_register_duplicate_username_returns_409(client):
     register(client)
 
-    response = register(client, displayname="Another Bob")
+    response = register(client, display_name="Another Bob")
 
     assert response.status_code == 409
 
@@ -60,8 +60,8 @@ def test_register_rejects_invalid_username_chars(client, username):
         ("username", "ab", "string_too_short"),
         ("username", "x" * 26, "string_too_long"),
         ("username", 123, "string_type"),
-        ("displayname", "", "string_too_short"),
-        ("displayname", "x" * 31, "string_too_long"),
+        ("display_name", "", "string_too_short"),
+        ("display_name", "x" * 31, "string_too_long"),
         ("password_plaintext", "1234", "string_too_short"),
     ],
 )
@@ -74,7 +74,7 @@ def test_register_field_constraints(client, field, value, error_type):
     assert error["loc"] == ["body", field]
 
 
-@pytest.mark.parametrize("missing_field", ["username", "displayname", "password_plaintext"])
+@pytest.mark.parametrize("missing_field", ["username", "display_name", "password_plaintext"])
 def test_register_missing_field_returns_422(client, missing_field):
     payload = {k: v for k, v in VALID_USER.items() if k != missing_field}
 
@@ -89,12 +89,12 @@ def test_register_missing_field_returns_422(client, missing_field):
 def test_register_reports_all_invalid_fields_at_once(client):
     response = client.post(
         "/auth/register",
-        json={"username": "bad name!", "displayname": "", "password_plaintext": "123"},
+        json={"username": "bad name!", "display_name": "", "password_plaintext": "123"},
     )
 
     assert response.status_code == 422
     invalid_fields = {error["loc"][1] for error in response.json()["detail"]}
-    assert invalid_fields == {"username", "displayname", "password_plaintext"}
+    assert invalid_fields == {"username", "display_name", "password_plaintext"}
 
 
 def test_register_does_not_create_user_on_validation_error(client):

@@ -47,7 +47,7 @@ async def login(user_data: UserLogin, response: Response) -> TokenJWT:
     return TokenJWT(token=access_token, type=TokenTypeJWT.ACCESS_TOKEN, transport=TokenTransport.BEARER)
 
 
-@router.post("/register",status_code=201)
+@router.post("/register", status_code=201)
 async def register(user_data: UserRequestRegistration):
     if user.user_exists(user_data.username):
         raise HTTPException(
@@ -57,7 +57,7 @@ async def register(user_data: UserRequestRegistration):
 
     hashed_password = auth_controller.hash_password(user_data.password_plaintext)
 
-    user.create_user(user_data.username, hashed_password, user_data.displayname)
+    user.create_user(user_data.username, hashed_password, user_data.display_name)
 
     return {"message": "пользователь создан"}
 
@@ -71,9 +71,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     user_data = user.get_user(payload["sub"])
 
     if not user_data:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "user does not exist")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "user is not exist")
 
     return {
         "username": payload["sub"],
-        "displayname": user_data.get("displayname")
+        "display_name": user_data.get("display_name")
     }
