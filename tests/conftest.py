@@ -1,10 +1,11 @@
 import os
 from datetime import datetime, timedelta, timezone
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from jose import jwt
-
+from clients.chat_service import ChatServiceClient
 os.environ["SECRET_KEY"] = "test-secret-key"
 os.environ["ALGORITHM"] = "HS256"
 os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "15"
@@ -75,3 +76,21 @@ def clock(monkeypatch):
     fake_clock = FakeClock()
     monkeypatch.setattr("controllers.check_rate_limit.time", fake_clock)
     return fake_clock
+
+@pytest.fixture
+def make_chat_service():
+    def _make(status_code=200, json=None, exc=None):
+        requests = []
+        def handler(request: httpx.Request) -> httpx.Response:
+            requests.append(request)
+            if exc is not None:
+                raise exc
+            return httpx.Response(status_code, json=json)
+
+        http = httpx.AsyncClient(
+            base_url="http://test",
+            transport=httpx.MockTransport(handler),
+        )
+        return ChatServiceClient(http), requests
+
+    return _make

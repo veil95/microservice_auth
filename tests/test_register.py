@@ -4,7 +4,6 @@ from model.user import user_instance
 
 VALID_USER = {"username": "bob", "display_name": "Bob", "password_plaintext": "secret123"}
 
-
 def register(client, **overrides):
     return client.post("/auth/register", json={**VALID_USER, **overrides})
 
