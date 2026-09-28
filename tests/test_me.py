@@ -1,7 +1,18 @@
 from datetime import timedelta
 
-from model.user import user_instance
 
+def test_me_returns_current_user(client, create_user, fake_chat_service):
+    token = login_token(client, create_user(display_name="Bobby"))
+    user_id = fake_chat_service.users_db["bob"]["user_id"]
+
+    response = get_me(client, token)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "user_id": user_id,
+        "username": "bob",
+        "display_name": "Bobby",
+    }
 
 def get_me(client, token):
     return client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
@@ -11,13 +22,18 @@ def login_token(client, user):
     return client.post("/auth/login", json=user).json()["token"]
 
 
-def test_me_returns_current_user(client, create_user):
+def test_me_returns_current_user(client, create_user, fake_chat_service):
     token = login_token(client, create_user(display_name="Bobby"))
+    user_id = fake_chat_service.users_db["bob"]["user_id"]
 
     response = get_me(client, token)
 
     assert response.status_code == 200
-    assert response.json() == {"username": "bob", "display_name": "Bobby"}
+    assert response.json() == {
+        "user_id": user_id,
+        "username": "bob",
+        "display_name": "Bobby",
+    }
 
 
 def test_me_does_not_expose_password_hash(client, create_user):
@@ -89,9 +105,19 @@ def test_me_with_token_without_sub_returns_401(client, make_token):
     assert response.json()["detail"] == "Invalid token payload"
 
 
-def test_me_for_deleted_user_returns_401(client, create_user):
+def test_me_for_deleted_user_returns_401(client, create_user, fake_chat_service):
     token = login_token(client, create_user())
-    user_instance.users_db.pop("bob")
+    fake_chat_service.users_db["bob"]["deleted_at"] = "2026-09-28T12:00:00Z"
+
+    response = get_me(client, token)
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "user does not exist"
+
+
+def test_me_for_missing_user_returns_401(client, create_user, fake_chat_service):
+    token = login_token(client, create_user())
+    fake_chat_service.users_db.pop("bob")
 
     response = get_me(client, token)
 

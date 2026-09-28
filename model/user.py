@@ -5,26 +5,6 @@ from pydantic_core import PydanticCustomError
 
 USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]+$")
 
-class User:
-    def __init__(self):
-        self.users_db = {}
-
-    def create_user(self, username: str, hashed_password: str, display_name: str) -> dict:
-        self.users_db[username] = {"hashed_password": hashed_password,
-                                   "display_name": display_name}
-        return self.users_db[username]
-
-    def user_exists(self, username: str) -> bool:
-        return username in self.users_db
-
-    def get_user(self, username: str) -> dict | None:
-        return self.users_db.get(username)
-
-    def get_hashed_password(self, username: str) -> Optional[str]:
-        user_record  = self.get_user(username)
-        if user_record is None:
-            return None
-        return user_record.get("hashed_password")
 
 
 class UserLogin(BaseModel):
@@ -44,6 +24,5 @@ class UserRequestRegistration(BaseModel):
                 "username_invalid_chars",
                 "Username может содержать только латинские буквы, цифры и _",
             )
-        return value
+        return value.lower()
 
-user_instance = User()
