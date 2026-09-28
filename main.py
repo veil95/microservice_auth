@@ -7,19 +7,23 @@ from fastapi.responses import JSONResponse
 from views.auth import router
 from views.token_routes import token_router
 from errors import UserAlreadyExists, ChatServiceUnavailable
+from clients.chat_service import ChatServiceClient
+
+
+CHAT_SERVICE_URL=getenv("CHAT_SERVICE_URL")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.http = httpx.AsyncClient(base_url=CHAT_SERVICE_URL)
+    http = httpx.AsyncClient(base_url=CHAT_SERVICE_URL, timeout=5)
+    app.state.chat_service = ChatServiceClient(http)
     yield
-    await app.state.http.aclose()
+    await http.aclose()
 
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(router)
 app.include_router(token_router)
-CHAT_SERVICE_URL=getenv("CHAT_SERVICE_URL")
-
 
 @app.exception_handler(UserAlreadyExists)
 async def user_already_exists_handler(request: Request, exc: UserAlreadyExists):
