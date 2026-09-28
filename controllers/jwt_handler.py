@@ -12,17 +12,17 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(getenv("REFRESH_TOKEN_EXPIRE_DAYS"))
 
 
-def create_refresh_token(username: str) -> str:
+def create_refresh_token(user_id: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    data = {"sub": username,
+    data = {"sub": user_id,
             "exp": expire,
             "type": "refresh_token"}
     return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def create_access_token(username: str) -> str:
+def create_access_token(user_id: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    data = {"sub": username,
+    data = {"sub": user_id,
             "exp": expire,
             "type": "access_token"}
     return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
@@ -44,8 +44,8 @@ def verify_access_token(token: str) -> dict:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token type")
-    username = payload.get("sub")
-    if not username:
+    user_id = payload.get("sub")
+    if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload")
@@ -58,9 +58,9 @@ def verify_refresh_token(token: str) -> dict:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token type")
-    username = payload.get("sub")
+    user_id = payload.get("sub")
 
-    if not username:
+    if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload")

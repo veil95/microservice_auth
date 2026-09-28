@@ -30,7 +30,7 @@ class ChatServiceClient:
     async def get_credential(self, username: str) -> dict | None:
         response = await self._make_request(
             method="GET",
-            url=f"/api/users/by-username/{username}/credentials"
+            url=f"/api/users/username/{username}/credentials"
         )
         if response.is_success:
             return response.json()
@@ -39,7 +39,7 @@ class ChatServiceClient:
         else:
             raise ChatServiceUnavailable(f"chat-service не ответил на GET /api/users/by-username/{username}/credentials")
 
-    async def get_user(self, user_id: uuid.UUID) -> dict | None:
+    async def get_user(self, user_id: str) -> dict | None:
         response = await self._make_request(
             method="GET",
             url=f"/api/users/{user_id}"
