@@ -1,33 +1,31 @@
 import pytest
 
-from model.user import user_instance
-
 VALID_USER = {"username": "bob", "display_name": "Bob", "password_plaintext": "secret123"}
 
 def register(client, **overrides):
     return client.post("/auth/register", json={**VALID_USER, **overrides})
 
 
-def test_register_success(client):
+def test_register_success(client, fake_chat_service):
     response = register(client)
 
     assert response.status_code == 201
-    assert response.json() == {"message": "пользователь создан"}
-    assert user_instance.get_user("bob") is not None
+    assert "bob" in fake_chat_service.users_db
+    assert fake_chat_service.users_db["bob"]["user_id"] in response.json()["message"]
 
 
-def test_register_stores_argon2_hash_not_plaintext(client):
+def test_register_stores_argon2_hash_not_plaintext(client, fake_chat_service):
     register(client)
 
-    stored = user_instance.get_hashed_password("bob")
+    stored = fake_chat_service.users_db["bob"]["hashed_password"]
     assert stored != "secret123"
     assert stored.startswith("$argon2id$")
 
 
-def test_register_stores_display_name(client):
+def test_register_stores_display_name(client, fake_chat_service):
     register(client, display_name="Bobby")
 
-    assert user_instance.get_user("bob")["display_name"] == "Bobby"
+    assert fake_chat_service.users_db["bob"]["display_name"] == "Bobby"
 
 
 def test_register_duplicate_username_returns_409(client):
@@ -96,7 +94,7 @@ def test_register_reports_all_invalid_fields_at_once(client):
     assert invalid_fields == {"username", "display_name", "password_plaintext"}
 
 
-def test_register_does_not_create_user_on_validation_error(client):
+def test_register_does_not_create_user_on_validation_error(client, fake_chat_service):
     register(client, password_plaintext="123")
 
-    assert user_instance.get_user("bob") is None
+    assert "bob" not in fake_chat_service.users_db

@@ -26,7 +26,7 @@ async def test_chat_service_get_user_success(make_chat_service):
 async def test_get_credentials_success(make_chat_service):
     client, requests = make_chat_service(status_code=200, json={"username": "bob"})
     assert await client.get_credential("bob") == {"username": "bob"}
-    assert requests[0].url.path == "/api/users/by-username/bob/credentials"
+    assert requests[0].url.path == "/api/users/username/bob/credentials"
 
 
 async def test_get_credentials_none_when_not_found(make_chat_service):

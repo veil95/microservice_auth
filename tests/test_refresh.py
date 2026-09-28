@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-from model.user import user_instance
 
 
 def login(client, user):
@@ -102,9 +101,19 @@ def test_refresh_ignores_bearer_header(client, create_user, make_token):
     assert response.json()["detail"] == "Refresh token not found"
 
 
-def test_refresh_for_deleted_user_returns_401(client, create_user):
+def test_refresh_for_deleted_user_returns_401(client, create_user, fake_chat_service):
     login(client, create_user())
-    user_instance.users_db.pop("bob")
+    fake_chat_service.users_db["bob"]["deleted_at"] = "2026-09-28T12:00:00Z"
+
+    response = client.post("/auth/refresh")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "user does not exist"
+
+
+def test_refresh_for_missing_user_returns_401(client, create_user, fake_chat_service):
+    login(client, create_user())
+    fake_chat_service.users_db.pop("bob")
 
     response = client.post("/auth/refresh")
 
