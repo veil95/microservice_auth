@@ -6,10 +6,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from views.auth import router
 from views.token_routes import token_router
-from errors import UserAlreadyExists, ChatServiceUnavailable, RateLimiterUnavailable
+from errors import UserAlreadyExists, ChatServiceUnavailable, RateLimiterUnavailable, RegistrationStoreUnavailable
+from errors import RegistrationNotFound, InvalidRegistrationCode
 from clients.chat_service import ChatServiceClient
 from redis.asyncio import Redis
-
+from controllers.registration_store import RegistrationStore
 
 CHAT_SERVICE_URL = getenv("CHAT_SERVICE_URL")
 REDIS_URL = getenv("REDIS_URL")
@@ -20,6 +21,8 @@ async def lifespan(app: FastAPI):
     http = httpx.AsyncClient(base_url=CHAT_SERVICE_URL, timeout=5)
     redis = Redis.from_url(REDIS_URL, decode_responses=True)
     rate_limiter = Ratelimit(redis)
+    registration_store = RegistrationStore(redis)
+    app.state.registration_store = registration_store
     app.state.chat_service = ChatServiceClient(http)
     app.state.rate_limiter = rate_limiter
     yield
@@ -52,6 +55,30 @@ async def rate_limiter_unavailable_handler(request: Request, exc: RateLimiterUna
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": "Rate limiter temporarily unavailable"}
+    )
+
+
+@app.exception_handler(RegistrationStoreUnavailable)
+async def registration_store_unavailable(request: Request, exc: RegistrationStoreUnavailable):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": "Registration store temporarily unavailable"}
+    )
+
+
+@app.exception_handler(RegistrationNotFound)
+async def registration_not_found(request: Request, exc: RegistrationNotFound):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": "registration_not_found"}
+    )
+
+
+@app.exception_handler(InvalidRegistrationCode)
+async def invalid_registration_code(request: Request, exc: InvalidRegistrationCode):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": "invalid_registration_code"}
     )
 
 

@@ -10,3 +10,15 @@ class ChatServiceUnavailable(Exception):
 
 class RateLimiterUnavailable(Exception):
     status_code = 503
+
+
+class RegistrationNotFound(Exception):
+    status_code = 404
+
+
+class InvalidRegistrationCode(Exception):
+    status_code = 422
+
+
+class RegistrationStoreUnavailable(Exception):
+    status_code = 503

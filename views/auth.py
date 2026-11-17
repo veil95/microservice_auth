@@ -5,6 +5,10 @@ from model.user import UserLogin, UserRequestRegistration
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from model.token import TokenTransport, TokenJWT, TokenTypeJWT
 from dependencies import ChatServiceDep, RatelimiterDep
+from uuid import uuid4
+from dependencies import RegistrationStoreDep
+from errors import UserAlreadyExists
+import secrets
 
 auth_controller = AuthController()
 security = HTTPBearer()
@@ -48,20 +52,29 @@ async def login(user_data: UserLogin, response: Response, chat_service: ChatServ
 
 
 @router.post("/register", status_code=201)
-async def register(user_data: UserRequestRegistration, chat_service: ChatServiceDep):
+async def register(user_data: UserRequestRegistration, chat_service: ChatServiceDep,
+                   registration_store: RegistrationStoreDep):
+    response = await chat_service.check_username(user_data.username)
+    if response.status_code == 409:
+        raise UserAlreadyExists
 
     hashed_password = auth_controller.hash_password(user_data.password_plaintext)
+    registration_id = uuid4()
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    response = await registration_store.create_form(registration_id=registration_id, username=user_data.username,
+                                                    email=user_data.email, display_name=user_data.display_name,
+                                                    hashed_password=hashed_password, code=code)
 
     created_user = await chat_service.create_user(username=user_data.username,
                              hashed_password=hashed_password,
-                             display_name=user_data.display_name
-                             )
+                             display_name=user_data.display_name)
 
     return {"message": f"пользователь с user_id {created_user["user_id"]} создан"}
 
 
 @router.get("/me")
-async def get_current_user(chat_service: ChatServiceDep, credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+async def get_current_user(chat_service: ChatServiceDep,
+                           credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     token = credentials.credentials
 
     payload = verify_access_token(token)

@@ -66,3 +66,6 @@ class ChatServiceClient:
             raise UserAlreadyExists("пользователь с таким именем уже существует")
         else:
             raise ChatServiceUnavailable("chat-service не ответил на POST /api/users/")
+
+    async def check_username(self, username: str):
+        pass
