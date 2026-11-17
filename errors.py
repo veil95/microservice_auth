@@ -6,3 +6,7 @@ class UserAlreadyExists(Exception):
 class ChatServiceUnavailable(Exception):
     """chat-service не ответил"""
     status_code = 503
+
+
+class RateLimiterUnavailable(Exception):
+    status_code = 503

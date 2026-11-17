@@ -1,39 +1,42 @@
-from time import time
-from datetime import timedelta
+from redis.asyncio import Redis, RedisError
+from errors import RateLimiterUnavailable
 
-RATE_LIMIT_LOGIN_COOLDOWN_S = timedelta(minutes=1).total_seconds()
+
 RATE_LIMIT_LOGIN_ATTEMPTS = 5
+TTL_SECONDS = 60
+
 
 class Ratelimit:
-    def __init__(self):
-        self.login_attempts = {}
+    def __init__(self, redis: Redis):
+        self.redis = redis
 
-    def check_rate_limit(self, username: str) -> bool:
-        current_time = time()
-
-        if username not in self.login_attempts:
-            self.login_attempts[username] = {"attempts": 0, "last_attempt_time": current_time}
+    async def check_rate_limit(self, username: str) -> bool:
+        try:
+            attempts = await self.redis.get(f"auth:login:{username}")
+        except RedisError:
+            raise RateLimiterUnavailable
+        if attempts is None:
             return True
-
-        user_attempts = self.login_attempts[username]
-        if current_time - user_attempts["last_attempt_time"] > RATE_LIMIT_LOGIN_COOLDOWN_S:
-            user_attempts["attempts"] = 0
-            user_attempts["last_attempt_time"] = current_time
+        elif int(attempts) < RATE_LIMIT_LOGIN_ATTEMPTS:
             return True
-
-        if user_attempts["attempts"] < RATE_LIMIT_LOGIN_ATTEMPTS:
-            return True
-        return False
-
-    def increment_login_attempt(self, username: str):
-        if username not in self.login_attempts:
-            self.login_attempts[username] = {"attempts": 1, "last_attempt_time": time()}
         else:
-            self.login_attempts[username]["attempts"] += 1
-            self.login_attempts[username]["last_attempt_time"] = time()
+            return False
 
-    def reset_attempts(self, username: str):
-        self.login_attempts[username]["attempts"] = 0
+    async def increment_login_attempt(self, username: str) -> None:
+        try:
+            key = f"auth:login:{username}"
+            async with self.redis.pipeline(transaction=True) as pipeline:
+                pipeline.incr(key)
+                pipeline.expire(key, TTL_SECONDS)
+                await pipeline.execute()
+        except RedisError:
+            raise RateLimiterUnavailable
+
+    async def reset_attempts(self, username: str) -> None:
+        try:
+            await self.redis.delete(f"auth:login:{username}")
+        except RedisError:
+            raise RateLimiterUnavailable
         return
 
 

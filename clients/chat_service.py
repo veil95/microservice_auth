@@ -13,8 +13,7 @@ class ChatServiceClient:
             *,
             headers=None,
             params=None,
-            json=None
-    ):
+            json=None):
         try:
             response = await self._http.request(
                 method=method,

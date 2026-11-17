@@ -25,11 +25,11 @@ async def get_refresh_token(request: Request, response: Response, chat_service: 
     new_refresh_token = create_refresh_token(payload.get("sub"))
 
     response.set_cookie(
-    key="refresh_token",
-    value=new_refresh_token,
-    httponly=True,
-    secure=False,
-    samesite="lax"
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="lax"
     )
 
     return TokenJWT(token=new_access_token, type=TokenTypeJWT.ACCESS_TOKEN, transport=TokenTransport.BEARER)
