@@ -1,13 +1,11 @@
 from fastapi import APIRouter, HTTPException, status, Response, Depends
 from controllers.user_auth import AuthController
-from controllers.check_rate_limit import Ratelimit
 from controllers.jwt_handler import create_access_token, create_refresh_token, verify_access_token
 from model.user import UserLogin, UserRequestRegistration
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from model.token import TokenTransport, TokenJWT, TokenTypeJWT
-from dependencies import ChatServiceDep
+from dependencies import ChatServiceDep, RatelimiterDep
 
-ratelimit = Ratelimit()
 auth_controller = AuthController()
 security = HTTPBearer()
 
@@ -15,9 +13,10 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
 @router.post("/login")
-async def login(user_data: UserLogin, response: Response, chat_service: ChatServiceDep) -> TokenJWT:
+async def login(user_data: UserLogin, response: Response, chat_service: ChatServiceDep,
+                ratelimit: RatelimiterDep) -> TokenJWT:
     username = user_data.username.lower()
-    if not ratelimit.check_rate_limit(username):
+    if not await ratelimit.check_rate_limit(username):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many login attempts. Please try again later"
@@ -25,7 +24,7 @@ async def login(user_data: UserLogin, response: Response, chat_service: ChatServ
     user_credential = await chat_service.get_credential(username)
     if (not user_credential or not
     (auth_controller.verify_password(user_data.password, user_credential["hashed_password"]))):
-        ratelimit.increment_login_attempt(username)
+        await ratelimit.increment_login_attempt(username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect login or password"
@@ -43,7 +42,7 @@ async def login(user_data: UserLogin, response: Response, chat_service: ChatServ
         samesite="lax"
     )
 
-    ratelimit.reset_attempts(username)
+    await ratelimit.reset_attempts(username)
 
     return TokenJWT(token=access_token, type=TokenTypeJWT.ACCESS_TOKEN, transport=TokenTransport.BEARER)
 

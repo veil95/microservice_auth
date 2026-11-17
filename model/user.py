@@ -6,7 +6,6 @@ from pydantic_core import PydanticCustomError
 USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]+$")
 
 
-
 class UserLogin(BaseModel):
     username: str
     password: str
