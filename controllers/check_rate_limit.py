@@ -1,3 +1,5 @@
+import json
+
 from redis.asyncio import Redis, RedisError
 from errors import RateLimiterUnavailable
 
