@@ -50,14 +50,15 @@ class ChatServiceClient:
         else:
             raise ChatServiceUnavailable(f"chat-service не ответил на GET /api/users/{user_id}")
 
-    async def create_user(self, username: str, hashed_password: str, display_name: str) -> dict:
+    async def create_user(self, email: str, username: str, hashed_password: str, display_name: str) -> dict:
         response = await self._make_request(
             method="POST",
             url="/api/users/",
             json={
                 "username": username,
                 "display_name": display_name,
-                "hashed_password": hashed_password
+                "hashed_password": hashed_password,
+                "email": email
             }
         )
         if response.is_success:
@@ -68,4 +69,7 @@ class ChatServiceClient:
             raise ChatServiceUnavailable("chat-service не ответил на POST /api/users/")
 
     async def check_username(self, username: str):
+        pass
+
+    async def check_email(self, email: str):
         pass

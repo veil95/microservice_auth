@@ -6,7 +6,6 @@ from typing import Optional
 from pydantic_core import PydanticCustomError
 
 USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]+$")
-CODE_PATTERN = re.compile(r"^[0-9]{6}$")
 
 
 class UserLogin(BaseModel):
@@ -16,16 +15,7 @@ class UserLogin(BaseModel):
 
 class RegistrationConfirmation(BaseModel):
     registration_id: UUID
-    code: str
-    @field_validator("code")
-    @classmethod
-    def validate_code(cls, value: str) -> str:
-        if not CODE_PATTERN.fullmatch(value):
-            raise PydanticCustomError(
-                "code_invalid_chars",
-                "Код верификации может быть только от 0 до 9 и ровно 6 цифр"
-            )
-        return value
+    token: str = Field(min_length=43, max_length=43)
 
 
 class UserRequestRegistration(BaseModel):
@@ -42,4 +32,3 @@ class UserRequestRegistration(BaseModel):
                 "Username может содержать только латинские буквы, цифры и _",
             )
         return value.lower()
-

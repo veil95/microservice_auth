@@ -1,11 +1,12 @@
 import json
-
 from redis.asyncio import Redis, RedisError
 from uuid import UUID
 from errors import RegistrationStoreUnavailable, RegistrationNotFound, InvalidRegistrationCode
 from controllers.user_auth import AuthController
 
+
 auth_controller = AuthController()
+
 
 class RegistrationStore:
     TTL_SECONDS = 300
@@ -14,16 +15,16 @@ class RegistrationStore:
         self.redis = redis
 
     async def create_form(self, registration_id: UUID, email: str,
-                          username: str, hashed_password: str, display_name: str, code: str):
+                          username: str, hashed_password: str, display_name: str, token: str):
         key = f"auth:registration:{registration_id}"
 
-        hash_code = auth_controller.hash_password(code)
+        hash_token = auth_controller.hash_password(token)
         data = {
             "email": email,
             "username": username,
             "hashed_password": hashed_password,
             "display_name": display_name,
-            "hash_code": hash_code,
+            "hash_token": hash_token,
         }
         try:
             async with self.redis.pipeline(transaction=True) as pipeline:
@@ -33,7 +34,7 @@ class RegistrationStore:
         except RedisError:
             raise RegistrationStoreUnavailable
 
-    async def check_form(self, registration_id: UUID, code: str):
+    async def check_form(self, registration_id: UUID, token: str):
         if registration_id is None:
             raise RegistrationNotFound
         key = f"auth:registration:{registration_id}"
@@ -44,8 +45,8 @@ class RegistrationStore:
         except RedisError:
             raise RegistrationStoreUnavailable
         data = json.loads(data)
-        hash_code = data["hash_code"]
-        check = auth_controller.verify_password(code, hash_code)
+        hash_token = data["hash_token"]
+        check = auth_controller.verify_password(token, hash_token)
         if check:
             return data
         else:
